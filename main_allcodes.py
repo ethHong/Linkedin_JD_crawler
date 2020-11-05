@@ -17,6 +17,8 @@ from tqdm.notebook import trange
 options = webdriver.ChromeOptions()
 options.add_experimental_option('excludeSwitches', ['enable-automation'])
 
+ID = input("ID (Email)")
+PASS = input("PASSWORD")
 
 def mock_user_agent():
     ua = UserAgent()
@@ -38,23 +40,22 @@ driver = webdriver.Chrome(driverpath, chrome_options=options)
 wait = WebDriverWait(driver, 10)
 
 
-def Login_linkedin(driver):
+def Login_linkedin(driver, ID, PASS):
+
     url = "https://www.linkedin.com/"
-
+   
     driver.get(url)
-    # driver.find_element_by_xpath('/html/body/div/main/p/a').click()
-
-    # ID = input("ID (Email)")
-    # PASS = input("PASSWORD")
-
-    ID = input("ID: ")
-    PASS = input("PASSWORD: ")
-
+    #driver.find_element_by_xpath('/html/body/div/main/p/a').click()
+    
+    ID = ID
+    PASS = PASS
+    
     elem = driver.find_element_by_xpath('//*[@id="session_key"]')
     elem.send_keys(ID)
     elem = driver.find_element_by_xpath('//*[@id="session_password"]')
     elem.send_keys(PASS)
-
+    
+   
     driver.find_element_by_xpath('/html/body/main/section[1]/div[2]/form/button').click()
 
 
@@ -64,11 +65,11 @@ def refresh_link(continue_link):
     driverpath = os.getcwd() + "/chromedriver"
     driver = webdriver.Chrome(driverpath, chrome_options=options)
 
-    Login_linkedin(driver)
+    Login_linkedin(driver, ID, PASS)
 
     driver.get(continue_link)
 
-Login_linkedin(driver)
+Login_linkedin(driver, ID, PASS)
 job = input("Put your job position: ")
 region = "대한민국"
 
