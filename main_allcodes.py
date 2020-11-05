@@ -206,3 +206,5 @@ for i in trange(total_page // how_many):
     df = pd.concat([df, out[0]])
     print("Refreshing for {} times".format(i + 1))
     refresh_link(start_url)
+
+#df.to_csv("JD_{}.csv".format(job))
