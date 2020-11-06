@@ -25,7 +25,6 @@ import time
 options = webdriver.ChromeOptions()
 options.add_experimental_option('excludeSwitches', ['enable-automation']) 
 
-
 def mock_user_agent():
     ua = UserAgent()
     
@@ -34,40 +33,58 @@ def mock_user_agent():
     random_head = ua.random.split("(")[0]+"("+ua.random.split("(")[1]
     return random_head + working_tail
 
-
-
 ID = input("ID (Email)")
 PASS = input("PASSWORD")
 
-
 userAgent = mock_user_agent()
 options.add_argument(f'user-agent={userAgent}')
-
+#driver =  webdriver.Chrome("/Users/HongSukhyun/Desktop/SukhyunHong/20-2/UDS/Course_Recommendation/chromedriver")
+#driverpath = os.getcwd()+"/chromedriver_win"
 
 driverpath = os.getcwd()+"/chromedriver"
 driver =  webdriver.Chrome(driverpath,  chrome_options=options)
 
 wait = WebDriverWait(driver, 10)
 
-def Login_linkedin(driver, ID, PASS):
+def check_http_error():
+    return "HTTP ERROR 429" in driver.page_source
 
+def Login_linkedin(driver, ID, PASS):
     url = "https://www.linkedin.com/"
-   
+    
     driver.get(url)
+        
+    
+        
+        
+            
     #driver.find_element_by_xpath('/html/body/div/main/p/a').click()
     
     ID = ID
     PASS = PASS
     
-    elem = driver.find_element_by_xpath('//*[@id="session_key"]')
-    elem.send_keys(ID)
-    elem = driver.find_element_by_xpath('//*[@id="session_password"]')
-    elem.send_keys(PASS)
-    
-   
-    driver.find_element_by_xpath('/html/body/main/section[1]/div[2]/form/button').click()
-    
+    try:
+        elem = driver.find_element_by_xpath('//*[@id="session_key"]')
+        elem.send_keys(ID)
+        elem = driver.find_element_by_xpath('//*[@id="session_password"]')
+        elem.send_keys(PASS)
 
+
+        driver.find_element_by_xpath('/html/body/main/section[1]/div[2]/form/button').click()
+    except:
+        if check_http_error() == True:
+            backup_df = df
+            print ("Take a break...for 3 minuits...")
+            time.sleep(180)
+            
+            elem = driver.find_element_by_xpath('//*[@id="session_key"]')
+            elem.send_keys(ID)
+            elem = driver.find_element_by_xpath('//*[@id="session_password"]')
+            elem.send_keys(PASS)
+
+
+            driver.find_element_by_xpath('/html/body/main/section[1]/div[2]/form/button').click()
+            
 
 def refresh_link(continue_link):
     userAgent = mock_user_agent()
@@ -79,11 +96,13 @@ def refresh_link(continue_link):
     
     driver.get(continue_link)
 
-
 Login_linkedin(driver, ID, PASS)
+
 
 job = input("Put your job position: ")
 region = "대한민국"
+
+
 
 header = "https://www.linkedin.com/jobs/search/?geoId=105149562&keywords="
 
@@ -95,6 +114,7 @@ link = header + refine(job)
 driver.get(link)
 
 
+
 print("wait 5 sec...")
 time.sleep(5)
 
@@ -103,18 +123,15 @@ html = driver.page_source
 soup = BeautifulSoup(html, "html.parser") 
 driver.implicitly_wait(10)
 
-
 pages = soup.find("ul", {"class": "artdeco-pagination__pages artdeco-pagination__pages--number"}).find_all("li")
 
 
 total_page = int(pages[-1].text.strip()) # # of total page
-
-
 def refresh_source_pages():
+    time.sleep(3)
     html = driver.page_source
     soup = BeautifulSoup(html, "html.parser") 
-    time.sleep(5)
-    driver.implicitly_wait(10)
+    
     try:
         p = soup.find("ul", {"class": "artdeco-pagination__pages artdeco-pagination__pages--number"}).find_all("li")
     except:
@@ -123,7 +140,9 @@ def refresh_source_pages():
         p = soup.find("ul", {"class": "artdeco-pagination__pages artdeco-pagination__pages--number"}).find_all("li")
     return [p, soup]
 
+
 def crawl_jd():
+    time.sleep(2)
     soup = refresh_source_pages()[1]
 
     potision = []
@@ -153,7 +172,6 @@ def crawl_jd():
 
 how_many = 3 #안전하게 3번마다 Refresh
 
-
 pages = refresh_source_pages()[0]
 soup = refresh_source_pages()[1]
 
@@ -165,7 +183,7 @@ def crawl_job_description(starting_page, how_many, start_url):
         
     driver.get(start_url)
     driver.implicitly_wait(10)
-    
+    time.sleep(2)
     pages = refresh_source_pages()[0]
     soup = refresh_source_pages()[1]
     
@@ -179,10 +197,15 @@ def crawl_job_description(starting_page, how_many, start_url):
         pages_meta = [j.text.strip().split()[0] for j in pages]    
 
         #Do Crawling#
+        
         crawed_page = crawl_jd()
         df = pd.concat([df, crawed_page])
         current = current+1
+        
+        if current>total_page:
+            break #Don't move page if it's last page 
         #Move page 
+        
         try:
             index_of_next_page = pages_meta.index(str(i+2))
         except ValueError:
@@ -205,28 +228,25 @@ def crawl_job_description(starting_page, how_many, start_url):
 
         
         driver.implicitly_wait(10)
-        print ("Upcoming page is {}".format(starting_page+i+1))
+        print ("Upcoming page is {}".format(i+2))
         upcoming = driver.current_url
         #Refresh List
         try:
             pages = refresh_source_pages()[0]
         except:
             driver.get(driver.current_url)
-            driver.implicitly_wait(10)
+            time.sleep(3)
+            pages = refresh_source_pages()[0]
         
     return (df, upcoming)
 
 
-def check_http_error():
-    return "HTTP ERROR 429" in driver.page_source
-
 df = pd.DataFrame()
 start_url = driver.current_url
+count = df.shape[0]
 
-go = "y"
-
-while go=="y":
-    for i in trange(total_page//how_many):
+for i in trange(total_page//how_many):
+    while count<100:
         starting_page_num = 1+(3*i)
 
         try:
@@ -234,32 +254,30 @@ while go=="y":
         except:
             if check_http_error() == True:
                 backup_df = df
-                
+
                 if starting_page_num !=1:
-                    
+
                     start_url = out[1]
-                print ("Take a break...for 1.5 minuits...")
-                time.sleep(90)
+                print ("Take a break...for 3 minuits...")
+                time.sleep(180)
                 #go = input("Keep going? (y/n)")
                 refresh_link(start_url)
                 out = crawl_job_description(starting_page_num, 3, start_url)
             else: #For simple errors
+                print ("refresh due to error...")
                 refresh_link(start_url)
                 driver.implicitly_wait(10)
                 out = crawl_job_description(starting_page_num, 3, start_url)
-        
+
         start_url = out[1]
         df =  pd.concat([df, out[0]])
+        count = df.shape[0]
+        print ("Count: {}".format(count))
         print ("Refreshing for {} times".format(i+1))
         refresh_link(start_url)
 
-       
-     
-
 df.to_csv("JD_{}.csv".format(job), index = False, encoding = 'utf-8')
+
 df.to_excel("JD_{}.xlsx".format(job), index = False, encoding = 'utf-8')
-
-df.head()
-
 
 
