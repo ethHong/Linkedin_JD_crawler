@@ -42,7 +42,7 @@ options.add_argument(f'user-agent={userAgent}')
 #driverpath = os.getcwd()+"/chromedriver_win"
 
 driverpath = os.getcwd()+"/chromedriver"
-driver =  webdriver.Chrome(driverpath,  chrome_options=options)
+driver = webdriver.Chrome(driverpath,  chrome_options=options)
 
 wait = WebDriverWait(driver, 10)
 
@@ -244,10 +244,13 @@ def crawl_job_description(starting_page, how_many, start_url):
 df = pd.DataFrame()
 start_url = driver.current_url
 count = df.shape[0]
+# go = "y"
 
-for i in trange(total_page//how_many):
-    while count<100:
-        starting_page_num = 1+(3*i)
+# while go=="y":
+while count < 1000:
+    for i in trange((total_page // how_many)):
+
+        starting_page_num = 1 + (3 * i)
 
         try:
             out = crawl_job_description(starting_page_num, 3, start_url)
@@ -255,29 +258,27 @@ for i in trange(total_page//how_many):
             if check_http_error() == True:
                 backup_df = df
 
-                if starting_page_num !=1:
-
+                if starting_page_num != 1:
                     start_url = out[1]
-                print ("Take a break...for 3 minuits...")
+                print("Take a break...for 3 minuits...")
                 time.sleep(180)
-                #go = input("Keep going? (y/n)")
+                # go = input("Keep going? (y/n)")
                 refresh_link(start_url)
                 out = crawl_job_description(starting_page_num, 3, start_url)
-            else: #For simple errors
-                print ("refresh due to error...")
+            else:  # For simple errors
+                print("refresh due to error...")
                 refresh_link(start_url)
                 driver.implicitly_wait(10)
                 out = crawl_job_description(starting_page_num, 3, start_url)
 
         start_url = out[1]
-        df =  pd.concat([df, out[0]])
+        df = pd.concat([df, out[0]])
         count = df.shape[0]
-        print ("Count: {}".format(count))
-        print ("Refreshing for {} times".format(i+1))
+        print("Count: {}".format(count))
+        print("Refreshing for {} times".format(i + 1))
         refresh_link(start_url)
 
 df.to_csv("JD_{}.csv".format(job), index = False, encoding = 'utf-8')
-
 df.to_excel("JD_{}.xlsx".format(job), index = False, encoding = 'utf-8')
 
 
